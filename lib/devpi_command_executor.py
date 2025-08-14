@@ -21,7 +21,7 @@ class DevpiCommandExecutor():
             result.check_returncode() 
             return result
         except subprocess.CalledProcessError as e:
-            logger.error(f'ERROR: {e.stdout}')
+            logger.error(f'{e.stdout}\n{e.stderr}')
             sys.exit(1)
 
     def get_users(self):
@@ -41,7 +41,7 @@ class DevpiCommandExecutor():
         if username in users:
             return
         self._run_command(
-            ['devpi', 'user', '-c', username, '--password', password]
+            ['devpi', 'user', '-c', username, f'password={password}']
         )
 
     def create_pypi_mirror_index(self, username, index_name):

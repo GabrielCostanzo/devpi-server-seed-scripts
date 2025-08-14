@@ -4,10 +4,10 @@ from lib.devpi_command_executor import DevpiCommandExecutor
 import logging
 import os
 
-PASSWORD_ENV_VAR = 'BOOTSTRAP_USER_PASSWORD'
+PASSWORD_ENV_VAR = 'DEFAULT_DEVPI_USER_PASSWORD'
 HOST_NAME = 'localhost'
 PORT = 4040
-USERNAME = 'bootstrap'
+USERNAME = 'costanga'
 PASSWORD = os.environ.get(PASSWORD_ENV_VAR)
 INDEX_NAME = 'mirror'
 ARTIFACT_DIR_PATH = './target_artifacts'

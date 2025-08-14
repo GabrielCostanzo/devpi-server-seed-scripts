@@ -9,7 +9,7 @@ HOST_NAME = 'localhost'
 PORT = 4040
 USERNAME = 'bootstrap'
 PASSWORD = os.environ.get(PASSWORD_ENV_VAR)
-INDEX_NAME = 'cookiecutter'
+INDEX_NAME = 'mirror'
 ARTIFACT_DIR_PATH = './target_artifacts'
 
 logging.basicConfig(

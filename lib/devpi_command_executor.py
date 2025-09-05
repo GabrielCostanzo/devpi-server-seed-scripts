@@ -36,31 +36,31 @@ class DevpiCommandExecutor():
         )
         return set(result.stdout.strip().split('\n'))
     
-    def create_user(self, username, password):
+    def create_user(self, user):
         users = self.get_users()
-        if username in users:
+        if user.name in users:
             return
         self._run_command(
-            ['devpi', 'user', '-c', username, f'password={password}']
+            ['devpi', 'user', '-c', user.name, f'password={user.get_password()}']
         )
 
-    def create_index(self, username, index_name, kwargs=None):
+    def create_index(self, index):
         indices = self.get_indices()
-        if f'{username}/{index_name}' in indices:
+        if index.get_use_str() in indices:
             return
 
         # Convert kwargs dict to list of "key=value" strings
         extra_args = []
-        if kwargs:
-            extra_args = [f"{key}={value}" for key, value in kwargs.items()]
+        if index.details:
+            extra_args = [f"{key}={value}" for key, value in index.details.items()]
 
         self._run_command(
-            ['devpi', 'index', '-c', index_name] + extra_args
+            ['devpi', 'index', '-c', index.name] + extra_args
         )
 
-    def login(self, username, password):
+    def login(self, user):
         self._run_command(
-            ['devpi', 'login', username, '--password', password]
+            ['devpi', 'login', user.name, '--password', user.get_password()]
         )
 
     def use(self, arg):
@@ -69,6 +69,9 @@ class DevpiCommandExecutor():
         )
 
     def upload(self, artifact_dir_path):
+        if not artifact_dir_path:
+            logger.info(f'no configured files to upload')
+            return
         files_to_upload = glob.glob(f"{artifact_dir_path}/*")
         if not files_to_upload:
             raise ValueError(f"No files found in {artifact_dir_path}")

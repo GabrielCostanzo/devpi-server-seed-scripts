@@ -1,61 +1,64 @@
 from lib.server_endpoint import ServerEndpoint
 from lib.server_status_checker import ServerStatusChecker
 from lib.devpi_command_executor import DevpiCommandExecutor
+from lib.index_configuration import IndexConfiguration, User
 import logging
-import os
 
-PASSWORD_ENV_VAR = 'DEFAULT_DEVPI_USER_PASSWORD'
 HOST_NAME = 'localhost'
 PORT = 4040
-PASSWORD = os.environ.get(PASSWORD_ENV_VAR)
-ARTIFACT_DIR_PATH = './target_artifacts'
 
-USERNAME = 'cache'
-INDEX_NAME = 'public'
-INDEX_KWARGS = {
-    'bases': 'root/pypi',
-    'volatile': 'true'
-}
+INDEX_PYPI_MIRROR_DEFAULT = 'root/pypi'
 
-logging.basicConfig(
-    level=logging.INFO,                  
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+USER_CACHE = User('cache', 'CACHE_USER_PASSWORD')
+USER_DEV = User('costanga', 'DEV_USER_PASSWORD')
+
+INDEX_CACHE_PRIVATE: IndexConfiguration = (
+    USER_CACHE.add_volatile_index('private')
+    .with_artifacts('./target_artifacts')
+    .build()
+)
+INDEX_CACHE_PROD: IndexConfiguration = (
+    USER_CACHE.add_volatile_index('prod')
+    .with_base(INDEX_PYPI_MIRROR_DEFAULT)
+    .with_base(INDEX_CACHE_PRIVATE)
+    .build()
+)
+INDEX_DEV: IndexConfiguration = (
+    USER_DEV.add_volatile_index('dev')
+    .build()
 )
 
-def seed_server(status_checker: ServerStatusChecker,
-         executor: DevpiCommandExecutor,
-         server_url: str,
-         username: str,
-         password: str,
-         index_name: str,
-         index_kwargs: dict,
-         artifact_dir_path: str):
+INDICIES = [
+    INDEX_CACHE_PRIVATE,
+    INDEX_CACHE_PROD,
+    INDEX_DEV
+]
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s"                  
+    #format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+)
+logger = logging.getLogger(__name__)
+
+def seed_index(server_url:str, 
+               executor: DevpiCommandExecutor,
+               status_checker: ServerStatusChecker,
+               index: IndexConfiguration):
     
     server_is_running = status_checker.is_running()
     if not server_is_running:
         raise Exception('Server is not running')
 
+    logger.info(f'Seeding index [ {index.get_use_str()} ]')
     executor.use(server_url)
-    executor.create_user(
-        username=username,
-        password=password
-    )
-    executor.login(
-        username=username,
-        password=password
-    )
-    executor.create_index(
-        username=username,
-        index_name=index_name,
-        kwargs=index_kwargs
-    )
-    executor.use(f'{username}/{index_name}')
-    executor.upload(artifact_dir_path)
+    executor.create_user(index.user)
+    executor.login(index.user)
+    executor.create_index(index)
+    executor.use(index.get_use_str())
+    executor.upload(index.artifact_dir_path)
 
 if __name__ == '__main__':
-    if not PASSWORD_ENV_VAR in os.environ:
-        raise Exception(f'required env var [ {PASSWORD_ENV_VAR} ] is not set')
-    
     server_endpoint: ServerEndpoint = ServerEndpoint(
         host_name=HOST_NAME,
         port=PORT
@@ -69,13 +72,10 @@ if __name__ == '__main__':
 
     server_url = server_endpoint.get_url()
 
-    seed_server(
-        status_checker=status_checker,
-        executor=executor,
-        server_url=server_url,
-        username=USERNAME,
-        password=PASSWORD,
-        index_name=INDEX_NAME,
-        index_kwargs=INDEX_KWARGS,
-        artifact_dir_path=ARTIFACT_DIR_PATH
-    )
+    for index in INDICIES:
+        seed_index(
+            server_url=server_url,
+            executor=executor,
+            status_checker=status_checker,
+            index=index
+        )

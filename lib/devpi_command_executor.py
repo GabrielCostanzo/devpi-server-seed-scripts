@@ -44,12 +44,18 @@ class DevpiCommandExecutor():
             ['devpi', 'user', '-c', username, f'password={password}']
         )
 
-    def create_pypi_mirror_index(self, username, index_name):
+    def create_index(self, username, index_name, kwargs=None):
         indices = self.get_indices()
         if f'{username}/{index_name}' in indices:
             return
+
+        # Convert kwargs dict to list of "key=value" strings
+        extra_args = []
+        if kwargs:
+            extra_args = [f"{key}={value}" for key, value in kwargs.items()]
+
         self._run_command(
-            ['devpi', 'index', '-c', index_name, 'bases=root/pypi']
+            ['devpi', 'index', '-c', index_name] + extra_args
         )
 
     def login(self, username, password):

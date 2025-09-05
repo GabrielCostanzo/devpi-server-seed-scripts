@@ -7,10 +7,15 @@ import os
 PASSWORD_ENV_VAR = 'DEFAULT_DEVPI_USER_PASSWORD'
 HOST_NAME = 'localhost'
 PORT = 4040
-USERNAME = 'costanga'
 PASSWORD = os.environ.get(PASSWORD_ENV_VAR)
-INDEX_NAME = 'mirror'
 ARTIFACT_DIR_PATH = './target_artifacts'
+
+USERNAME = 'cache'
+INDEX_NAME = 'public'
+INDEX_KWARGS = {
+    'bases': 'root/pypi',
+    'volatile': 'true'
+}
 
 logging.basicConfig(
     level=logging.INFO,                  
@@ -23,6 +28,7 @@ def seed_server(status_checker: ServerStatusChecker,
          username: str,
          password: str,
          index_name: str,
+         index_kwargs: dict,
          artifact_dir_path: str):
     
     server_is_running = status_checker.is_running()
@@ -38,9 +44,10 @@ def seed_server(status_checker: ServerStatusChecker,
         username=username,
         password=password
     )
-    executor.create_pypi_mirror_index(
+    executor.create_index(
         username=username,
-        index_name=index_name
+        index_name=index_name,
+        kwargs=index_kwargs
     )
     executor.use(f'{username}/{index_name}')
     executor.upload(artifact_dir_path)
@@ -69,5 +76,6 @@ if __name__ == '__main__':
         username=USERNAME,
         password=PASSWORD,
         index_name=INDEX_NAME,
+        index_kwargs=INDEX_KWARGS,
         artifact_dir_path=ARTIFACT_DIR_PATH
     )
